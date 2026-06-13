@@ -28,7 +28,7 @@ flowchart TD
         tp_exec[sched_process_exec] --> ring_buf
     end
 
-    subgraph Conductor Daemon (User Space)
+    subgraph "Conductor Daemon (User Space)"
         async_fd[AsyncFd Poller] -- Read Event-Driven --> ring_buf
         async_fd --> rb_consumer[Ring Buffer Consumer]
         
@@ -40,7 +40,7 @@ flowchart TD
         
         mapper -- Decoupled Stream --o osc_dispatcher[OSC Dispatcher]
         
-        db_event_pool --> sqlite[(local state.db)]
+        db_event_pool --> sqlite[("local state.db")]
         db_snap_pool --> sqlite
         
         axum[Axum REST Server] -- status/state/config --> app_state[Shared App State]
@@ -48,7 +48,7 @@ flowchart TD
         app_state <--> mapper
     end
 
-    subgraph Audio Backend (Untrusted)
+    subgraph "Audio Backend (Untrusted)"
         osc_dispatcher -- OSC 1.1 Bundles (UDP) --> supercollider[SuperCollider / PureData]
     end
 ```
