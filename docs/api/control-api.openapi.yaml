@@ -1,0 +1,185 @@
+openapi: 3.0.3
+info:
+  title: DAEMON CHOIR Control API
+  version: 2.0.0
+  description: |
+    Production REST API for controlling, configuring, and inspecting the local DAEMON CHOIR daemon.
+    All endpoints bind to localhost:9876 loopback ONLY.
+servers:
+  - url: http://127.0.0.1:9876/v1
+    description: Local loopback only
+paths:
+  /status:
+    get:
+      summary: Retrieve daemon status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  build_commit:
+                    type: string
+                  uptime_secs:
+                    type: integer
+                  state:
+                    type: string
+                  probes_loaded:
+                    type: integer
+                  backends_active:
+                    type: integer
+                  api_version:
+                    type: string
+  /state:
+    get:
+      summary: Retrieve current metrics snapshot
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp_us:
+                    type: integer
+                  window_ms:
+                    type: integer
+                  stale:
+                    type: boolean
+                  lost_events:
+                    type: integer
+                  metrics:
+                    type: object
+                    properties:
+                      cpu.sched.latency_p95:
+                        type: number
+                      cpu.sched.context_rate:
+                        type: number
+                      mem.reclaim.pressure:
+                        type: number
+                      net.tx.bytes_norm:
+                        type: number
+                      net.rx.bytes_norm:
+                        type: number
+                      proc.exec.rate:
+                        type: number
+  /voices:
+    get:
+      summary: Retrieve current OSC voice assignments
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  voices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        source_metric:
+                          type: string
+                        osc_address:
+                          type: string
+                        transform:
+                          type: string
+  /probes:
+    get:
+      summary: Retrieve active eBPF/simulated probes status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    attach_point:
+                      type: string
+                    loaded:
+                      type: boolean
+                    events_total:
+                      type: integer
+                    events_lost:
+                      type: integer
+                    last_event_us:
+                      type: integer
+  /config:
+    get:
+      summary: Get active configuration
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /config/reload:
+    post:
+      summary: Trigger hot reload of config file from disk
+      responses:
+        "202":
+          description: Reload triggered successfully
+        "409":
+          description: Conflict, config contains errors
+  /config/backends:
+    put:
+      summary: Dynamically update OSC backends
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  address:
+                    type: string
+      responses:
+        "200":
+          description: Backends updated
+  /metrics:
+    get:
+      summary: Retrieve Prometheus formatting metrics
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+  /shutdown:
+    post:
+      summary: Graceful shutdown of the daemon
+      parameters:
+        - name: X-Daemon-Choir
+          in: header
+          required: true
+          schema:
+            type: string
+            enum: [shutdown]
+      responses:
+        "202":
+          description: Shutdown initiated
+        "403":
+          description: Forbidden (invalid or missing CSRF guard header)
+  /privacy/wipe:
+    post:
+      summary: Immediate purge of database logs and state
+      responses:
+        "200":
+          description: Database wiped completely

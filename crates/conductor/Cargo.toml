@@ -1,0 +1,36 @@
+[package]
+name = "conductor"
+version = "2.0.0"
+edition = "2021"
+
+[dependencies]
+daemon-choir-common = { path = "../daemon-choir-common" }
+tokio = { version = "1.35", features = ["full"] }
+axum = { version = "0.7", features = ["http1", "http2", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+rosc = "0.10"
+rusqlite = { version = "0.31", features = ["bundled"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+futures-util = "0.3"
+libc = "0.2"
+aya = { version = "0.12", optional = true }
+
+[features]
+default = []
+ebpf = ["dep:aya"]
+
+[dev-dependencies]
+criterion = "0.5"
+tower = { version = "0.4", features = ["util"] }
+http-body-util = "0.1"
+
+[[bench]]
+name = "dispatch_latency"
+harness = false
+
+[[bench]]
+name = "aggregation_throughput"
+harness = false

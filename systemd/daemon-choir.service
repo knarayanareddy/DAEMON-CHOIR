@@ -1,0 +1,22 @@
+[Unit]
+Description=DAEMON CHOIR — system-state-to-sound daemon
+After=network.target sound.target
+Documentation=https://github.com/knarayanareddy/DAEMON-CHOIR
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/daemon-choir --config %h/.config/daemon-choir/daemon-choir.config.toml
+Restart=on-failure
+RestartSec=5s
+
+# Security hardening (Section 13.2 specification)
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+
+# Allow eBPF (capabilities set via setcap on binary)
+AmbientCapabilities=
+
+[Install]
+WantedBy=default.target

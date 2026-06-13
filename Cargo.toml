@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "crates/daemon-choir-common",
+    "crates/conductor",
+    "crates/daemon-choir-tui",
+]
+resolver = "2"

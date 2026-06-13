@@ -1,0 +1,134 @@
+# ==============================================================================
+#                  DAEMON CHOIR - Configuration Specification Template
+# ==============================================================================
+# File: daemon-choir.config.toml
+# Location: ~/.config/daemon-choir/daemon-choir.config.toml
+#
+# This file governs the execution characteristics, active kernel probes,
+# destination OSC backends, and parameter mapping algorithms for the conductor.
+# ==============================================================================
+
+[daemon]
+# Time window in milliseconds for gathering and averaging raw telemetry events.
+# Range: 10 to 500 (default: 50)
+window_ms = 50
+
+# Log level for stdout logging.
+# Options: "trace", "debug", "info", "warn", "error" (default: "info")
+log_level = "info"
+
+# Format for output logs. "json" is ideal for production parsing; "pretty" for CLI debugging.
+# Options: "pretty", "json" (default: "pretty")
+log_format = "pretty"
+
+# Loopback UDP port for binding the Axum control REST API.
+# The API binds STRICTLY to 127.0.0.1. Rejects startup if port is 0.
+# (default: 9876)
+control_api_port = 9876
+
+# Set to true to execute in simulation mode. Useful for running on macOS,
+# Windows, or Linux systems without root capability grants.
+# Options: true, false (default: true)
+simulate = true
+
+
+[probes]
+# Enabled kernel-space telemetry sources.
+# Options:
+#  - "cpu_sched"      : Context switch rate + queue latency metrics
+#  - "mem_pressure"   : Memory inactive page reclaim pressure
+#  - "net_io"         : Network transmit bytes and interface mapping
+#  - "proc_lifecycle" : Executable process spawn rates and UID hashing
+enabled = [
+    "cpu_sched",
+    "mem_pressure",
+    "net_io",
+    "proc_lifecycle"
+]
+
+
+[backends]
+# Destination hosts listening for generative audio and visual OSC UDP packets.
+# You can define multiple targets to broadcast parameters concurrently.
+[[backends.osc]]
+name = "supercollider"
+address = "127.0.0.1:57120"
+
+[[backends.osc]]
+name = "puredata"
+address = "127.0.0.1:57121"
+
+[[backends.osc]]
+name = "processing_visuals"
+address = "127.0.0.1:12000"
+
+
+# ==============================================================================
+# TELEMETRY TO OSC PARAMETER MAPPING RULES
+# ==============================================================================
+# Each rule maps an internal normalized metric [0.0 - 1.0] to a specific OSC route.
+#
+# Available source_metric values:
+#  - "cpu.sched.latency_p95"  : p95 scheduling wait time (queue latency)
+#  - "cpu.sched.context_rate" : Number of context switches per window
+#  - "mem.reclaim.pressure"   : Number of pages reclaimed per window
+#  - "net.tx.bytes_norm"      : Normalised outgoing bandwidth (bytes tx)
+#  - "net.rx.bytes_norm"      : Normalised incoming bandwidth (bytes rx)
+#  - "proc.exec.rate"         : Number of new process spawns per window
+#
+# Available transform algorithms:
+#  - "linear"      : Direct linear mapping: out = out_min + (out_max - out_min) * ratio
+#  - "exponential" : Exponential pitch mapping: out = out_min * (out_max/out_min)^ratio (bounds must be > 0)
+#  - "logarithmic" : Logarithmic scaling matching human loudness perception
+#  - "step"        : Quantises the input into 5 discrete steps
+#
+# input_range  : [min, max] input filter clamps. Metrics outside are bounded.
+# output_range : [min, max] target values scaled to the destination receiver.
+# ==============================================================================
+
+[[mapping]]
+source_metric = "cpu.sched.latency_p95"
+osc_address = "/choir/voice/0/frequency"
+transform = "exponential"
+input_range = [0.0, 1.0]
+output_range = [220.0, 880.0]  # Map to audio frequency range in Hz (A3 to A5)
+
+[[mapping]]
+source_metric = "cpu.sched.context_rate"
+osc_address = "/choir/voice/0/amplitude"
+transform = "linear"
+input_range = [0.0, 1.0]
+output_range = [0.0, 0.8]      # Map to overall volume amplitude (0.0 to 0.8)
+
+[[mapping]]
+source_metric = "mem.reclaim.pressure"
+osc_address = "/choir/voice/1/frequency"
+transform = "exponential"
+input_range = [0.0, 1.0]
+output_range = [55.0, 220.0]   # FM Bass modulator frequency (A1 to A3)
+
+[[mapping]]
+source_metric = "net.tx.bytes_norm"
+osc_address = "/choir/voice/2/filter_resonance"
+transform = "linear"
+input_range = [0.0, 1.0]
+output_range = [0.1, 0.95]     # Squelchy filter resonance coefficients
+
+[[mapping]]
+source_metric = "net.rx.bytes_norm"
+osc_address = "/choir/voice/2/frequency"
+transform = "logarithmic"
+input_range = [0.0, 1.0]
+output_range = [440.0, 1760.0] # Map incoming traffic to filter sweep frequency (A4 to A6)
+
+[[mapping]]
+source_metric = "proc.exec.rate"
+osc_address = "/choir/voice/3/trigger"
+transform = "step"
+input_range = [0.0, 1.0]
+output_range = [0.0, 1.0]      # Triggers snare-like noise bursts when executions occur
+
+
+[meta]
+# Version tag for mapping configuration schema matching engine rules.
+schema_version = "1"

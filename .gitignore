@@ -1,0 +1,16 @@
+# Rust Build Artifacts
+/target/
+
+# Local Dev Caches
+/.cargo/
+/.local/
+
+# Databases & Runtime States
+*.db
+*.db-journal
+*.log
+
+# IDEs & OS Files
+.DS_Store
+.vscode/
+.idea/
